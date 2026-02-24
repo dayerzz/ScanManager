@@ -93,3 +93,29 @@ def download_scan(
         filename=scan.original_filename,
         media_type="application/octet-stream"
     )
+
+
+@router.delete("/{scan_id}")
+def delete_scan(
+    scan_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    scan = (
+        db.query(Scan)
+        .filter(Scan.id == scan_id, Scan.user_id == current_user.id)
+        .first()
+    )
+
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    # удаляем файл с диска
+    if os.path.exists(scan.file_path):
+        os.remove(scan.file_path)
+
+    # удаляем запись из БД
+    db.delete(scan)
+    db.commit()
+
+    return {"detail": "Scan deleted successfully"}
