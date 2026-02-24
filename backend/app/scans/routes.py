@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
+from app.core.logger import logger
 from app.auth.dependencies import get_current_user
 from app.schemas.scan import ScanResponse
 from app.models.scan import Scan
@@ -22,40 +23,56 @@ def upload_scan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # создаём папку пользователя
-    user_folder = os.path.join(BASE_STORAGE_PATH, f"user_{current_user.id}")
-    os.makedirs(user_folder, exist_ok=True)
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="File must have a name")
 
-    # генерируем уникальное имя файла
-    file_extension = os.path.splitext(file.filename)[1]
-    stored_filename = f"{uuid.uuid4()}{file_extension}"
-    file_path = os.path.join(user_folder, stored_filename)
+    try:
+        user_folder = os.path.join(BASE_STORAGE_PATH, f"user_{current_user.id}")
+        os.makedirs(user_folder, exist_ok=True)
 
-    # сохраняем файл
-    with open(file_path, "wb") as buffer:
+        file_extension = os.path.splitext(file.filename)[1]
+        stored_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join(user_folder, stored_filename)
+
         content = file.file.read()
-        buffer.write(content)
 
-    file_size = len(content)
+        if not content:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
-    # создаём запись в БД
-    new_scan = Scan(
-        user_id=current_user.id,
-        original_filename=file.filename,
-        stored_filename=stored_filename,
-        file_path=file_path,
-        file_size=file_size
-    )
+        with open(file_path, "wb") as buffer:
+            buffer.write(content)
 
-    db.add(new_scan)
-    db.commit()
-    db.refresh(new_scan)
+        file_size = len(content)
 
-    return {
-        "id": str(new_scan.id),
-        "filename": new_scan.original_filename,
-        "size": new_scan.file_size
-    }
+        new_scan = Scan(
+            user_id=current_user.id,
+            original_filename=file.filename,
+            stored_filename=stored_filename,
+            file_path=file_path,
+            file_size=file_size
+        )
+
+        db.add(new_scan)
+        db.commit()
+        db.refresh(new_scan)
+
+        logger.info(
+            f"SCAN_UPLOAD | user={current_user.id} | scan={new_scan.id} | size={file_size}"
+        )
+
+        return {
+            "id": str(new_scan.id),
+            "filename": new_scan.original_filename,
+            "size": new_scan.file_size
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"SCAN_UPLOAD_ERROR | user={current_user.id} | error={str(e)}"
+        )
+        raise HTTPException(status_code=500, detail="File upload failed")
 
 
 @router.get("/", response_model=List[ScanResponse])
@@ -68,6 +85,10 @@ def get_user_scans(
         .filter(Scan.user_id == current_user.id)
         .order_by(Scan.created_at.desc())
         .all()
+    )
+
+    logger.info(
+        f"LIST | user={current_user.id} | count={len(scans)}"
     )
 
     return scans
@@ -86,7 +107,20 @@ def download_scan(
     )
 
     if not scan:
+        logger.warning(
+            f"DOWNLOAD FAILED | user={current_user.id} | scan={scan_id} | not found"
+        )
         raise HTTPException(status_code=404, detail="Scan not found")
+
+    if not os.path.exists(scan.file_path):
+        logger.error(
+            f"DOWNLOAD ERROR | file missing on disk | scan={scan.id}"
+        )
+        raise HTTPException(status_code=500, detail="File missing on server")
+
+    logger.info(
+        f"DOWNLOAD | user={current_user.id} | scan={scan.id}"
+    )
 
     return FileResponse(
         path=scan.file_path,
@@ -108,14 +142,26 @@ def delete_scan(
     )
 
     if not scan:
+        logger.warning(
+            f"DELETE FAILED | user={current_user.id} | scan={scan_id} | not found"
+        )
         raise HTTPException(status_code=404, detail="Scan not found")
 
-    # удаляем файл с диска
-    if os.path.exists(scan.file_path):
-        os.remove(scan.file_path)
+    try:
+        if os.path.exists(scan.file_path):
+            os.remove(scan.file_path)
 
-    # удаляем запись из БД
-    db.delete(scan)
-    db.commit()
+        db.delete(scan)
+        db.commit()
 
-    return {"detail": "Scan deleted successfully"}
+        logger.info(
+            f"DELETE | user={current_user.id} | scan={scan.id}"
+        )
+
+        return {"detail": "Scan deleted successfully"}
+
+    except Exception as e:
+        logger.error(
+            f"DELETE ERROR | user={current_user.id} | scan={scan_id} | error={str(e)}"
+        )
+        raise HTTPException(status_code=500, detail="Failed to delete scan")
