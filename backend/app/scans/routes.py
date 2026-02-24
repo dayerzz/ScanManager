@@ -56,6 +56,26 @@ def upload_scan(
         db.commit()
         db.refresh(new_scan)
 
+        from app.services.ocr_service import extract_text_from_image
+
+        file_ext = file_extension.lower()
+
+        if file_ext in [".png", ".jpg", ".jpeg"]:
+            try:
+                ocr_text = extract_text_from_image(file_path)
+
+                new_scan.ocr_text = ocr_text
+                db.commit()
+
+                logger.info(
+                    f"OCR_DONE | user={current_user.id} | scan={new_scan.id} | chars={len(ocr_text)}"
+                )
+
+            except Exception as e:
+                logger.error(
+                    f"OCR_ERROR | user={current_user.id} | scan={new_scan.id} | error={str(e)}"
+                )
+
         logger.info(
             f"SCAN_UPLOAD | user={current_user.id} | scan={new_scan.id} | size={file_size}"
         )

@@ -8,6 +8,9 @@ from app.scans.routes import router as scans_router
 from app.auth.routes import router as auth_router
 from app.users.routes import router as users_router
 
+from dotenv import load_dotenv
+load_dotenv()
+
 app = FastAPI(title="ScanManager API")
 
 Base.metadata.create_all(bind=engine)
