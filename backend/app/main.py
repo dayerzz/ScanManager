@@ -3,6 +3,8 @@ from sqlalchemy import text
 
 from app.core.database import engine, Base
 from app.models import user
+from app.models import scan
+from app.scans.routes import router as scans_router
 from app.auth.routes import router as auth_router
 from app.users.routes import router as users_router
 
@@ -12,6 +14,7 @@ Base.metadata.create_all(bind=engine)
 
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(scans_router)
 
 
 @app.get("/")

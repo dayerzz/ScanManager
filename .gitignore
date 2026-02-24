@@ -51,6 +51,9 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# user uploaded files
+backend/storage/
+
 # Translations
 *.mo
 *.pot
