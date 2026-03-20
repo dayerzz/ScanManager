@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
 import { login, getMe, getScans, uploadScan, deleteScan, downloadScan } from "./api";
+import { Routes, Route, Navigate } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import ScansPage from "./pages/ScansPage";
+
 
 function App() {
   const [email, setEmail] = useState("");
@@ -101,60 +105,12 @@ function App() {
   }, []);
 
   return (
-    <div style={{ padding: "20px" }}>
-      {user ? (
-        <div>
-          <h1>Привет, {user.email}</h1>
-          <input type="file" onChange={handleUpload} />
-
-          <h2>Мои сканы:</h2>
-
-          {scans.length === 0 ? (
-            <p>Нет сканов</p>
-          ) : (
-            <ul>
-              {scans.map((scan) => (
-                <li key={scan.id}>
-                  {scan.original_filename} ({scan.file_size} bytes)
-
-                  <button onClick={() => handleDownload(scan)}>
-                    Download
-                  </button>
-
-                  <button onClick={() => handleDelete(scan.id)}>
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : (
-        <div>
-          <h1>Login</h1>
-
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-          />
-
-          <br /><br />
-
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            type="password"
-          />
-
-          <br /><br />
-
-          <button onClick={handleLogin}>Login</button>
-        </div>
-      )}
-    </div>
-  );
+  <Routes>
+    <Route path="/" element={<Navigate to="/login" />} />
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/scans" element={<ScansPage />} />
+  </Routes>
+);
 }
 
 export default App;

@@ -8,6 +8,7 @@ class ScanResponse(BaseModel):
     original_filename: str
     file_size: int
     created_at: datetime
+    ocr_text: str | None
 
     class Config:
         from_attributes = True
