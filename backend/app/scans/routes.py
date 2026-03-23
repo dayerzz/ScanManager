@@ -98,19 +98,19 @@ def upload_scan(
 
 @router.get("/", response_model=List[ScanResponse])
 def get_user_scans(
+    search: str = "",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    scans = (
-        db.query(Scan)
-        .filter(Scan.user_id == current_user.id)
-        .order_by(Scan.created_at.desc())
-        .all()
-    )
+    query = db.query(Scan).filter(Scan.user_id == current_user.id)
 
-    logger.info(
-        f"LIST | user={current_user.id} | count={len(scans)}"
-    )
+    if search:
+        query = query.filter(
+            Scan.original_filename.ilike(f"%{search}%") |
+            Scan.ocr_text.ilike(f"%{search}%")
+        )
+
+    scans = query.order_by(Scan.created_at.desc()).all()
 
     return scans
 

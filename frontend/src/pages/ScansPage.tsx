@@ -15,9 +15,11 @@ function ScansPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const navigate = useNavigate();
 
+  // init
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem("access_token");
@@ -47,18 +49,45 @@ function ScansPage() {
     fetchData();
   }, []);
 
+  // поиск
+  useEffect(() => {
+    const fetchSearch = async () => {
+      try {
+        const data = await getScans(search);
+        setScans(data);
+      } catch (e) {
+        console.error("SEARCH ERROR", e);
+      }
+    };
+
+    fetchSearch();
+  }, [search]);
+
+  // подсветка
+  const highlightText = (text: string, query: string) => {
+    if (!query) return text;
+
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escaped})`, "gi");
+
+    return text.replace(
+      regex,
+      `<mark class="bg-yellow-300 text-black">$1</mark>`
+    );
+  };
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     await uploadScan(file);
-    const updated = await getScans();
+    const updated = await getScans(search);
     setScans(updated);
   };
 
   const handleDelete = async (id: string) => {
     await deleteScan(id);
-    const updated = await getScans();
+    const updated = await getScans(search);
     setScans(updated);
   };
 
@@ -79,7 +108,7 @@ function ScansPage() {
       setEditingId(null);
       setNewName("");
 
-      const updated = await getScans();
+      const updated = await getScans(search);
       setScans(updated);
 
     } catch (error) {
@@ -122,7 +151,7 @@ function ScansPage() {
               onClick={handleLogout}
               className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
             >
-              Logout
+              Выйти
             </button>
 
           </div>
@@ -134,6 +163,17 @@ function ScansPage() {
             type="file"
             onChange={handleUpload}
             className="block w-full text-sm"
+          />
+        </div>
+
+        {/* SEARCH */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Поиск по имени или тексту..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full p-2 border rounded"
           />
         </div>
 
@@ -202,14 +242,14 @@ function ScansPage() {
                     onClick={() => handleDownload(scan)}
                     className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
                   >
-                    Download
+                    Скачать
                   </button>
 
                   <button
                     onClick={() => handleDelete(scan.id)}
                     className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition"
                   >
-                    Delete
+                    Удалить
                   </button>
 
                 </div>
@@ -217,9 +257,12 @@ function ScansPage() {
 
               {/* OCR */}
               {scan.ocr_text && expandedId === scan.id && (
-                <pre className="mt-3 bg-black text-green-400 p-3 rounded text-sm max-h-48 overflow-auto whitespace-pre-wrap">
-                  {scan.ocr_text}
-                </pre>
+                <pre
+                  className="mt-3 bg-black text-green-400 p-3 rounded text-sm max-h-48 overflow-auto whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{
+                    __html: highlightText(scan.ocr_text, search),
+                  }}
+                />
               )}
 
             </div>

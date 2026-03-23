@@ -28,7 +28,7 @@ export default function LoginPage() {
         <div className="w-80">
 
           <h2 className="text-2xl font-bold mb-6">
-            Welcome Back
+            С возвращением!
           </h2>
 
           <input
@@ -51,7 +51,7 @@ export default function LoginPage() {
             onClick={handleLogin}
             className="w-full bg-indigo-500 text-white p-3 rounded hover:bg-indigo-600 transition"
           >
-            Login
+            Войти
           </button>
 
           {/* ССЫЛКА НА РЕГИСТРАЦИЮ */}

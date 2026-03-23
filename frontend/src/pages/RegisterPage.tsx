@@ -47,7 +47,7 @@ export default function RegisterPage() {
           onClick={handleRegister}
           className="w-full bg-green-500 text-white p-3 rounded"
         >
-          Register
+          Зарегистрироваться
         </button>
       </div>
     </div>

@@ -21,7 +21,7 @@ export const login = async (email: string, password: string) => {
 };
 
 export const register = async (email: string, password: string) => {
-  const response = await fetch("http://127.0.0.1:8000/auth/register", {
+  const response = await fetch("${API_URL}/auth/register", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -53,20 +53,21 @@ export const getMe = async () => {
   return response.json();
 };
 
-export const getScans = async () => {
+export const getScans = async (search: string = "") => {
   const token = localStorage.getItem("access_token");
 
-  const response = await fetch(`${API_URL}/scans/`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const res = await fetch(
+    `${API_URL}/scans?search=${search}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch scans");
-  }
+  if (!res.ok) throw new Error("Failed to fetch scans");
 
-  return response.json();
+  return res.json();
 };
 
 
@@ -76,7 +77,7 @@ export const uploadScan = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch("http://127.0.0.1:8000/scans/upload", {
+  const response = await fetch('${API_URL}/scans/upload', {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -95,7 +96,7 @@ export const uploadScan = async (file: File) => {
 export const renameScan = async (id: string, newName: string) => {
   const token = localStorage.getItem("access_token");
 
-  const res = await fetch(`http://127.0.0.1:8000/scans/${id}`, {
+  const res = await fetch(`${API_URL}/scans/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -116,7 +117,7 @@ export const deleteScan = async (scanId: string) => {
   const token = localStorage.getItem("access_token");
 
   const response = await fetch(
-    `http://127.0.0.1:8000/scans/${scanId}`,
+    `${API_URL}/scans/${scanId}`,
     {
       method: "DELETE",
       headers: {
@@ -137,7 +138,7 @@ export const downloadScan = async (scanId: string) => {
   const token = localStorage.getItem("access_token");
 
   const response = await fetch(
-    `http://127.0.0.1:8000/scans/${scanId}/download`,
+    `${API_URL}/scans/${scanId}/download`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
