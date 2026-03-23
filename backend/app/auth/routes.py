@@ -56,6 +56,31 @@ def login(
     }
 
 
+
+@router.post("/register")
+def register_user(
+    user_data: UserCreate,
+    db: Session = Depends(get_db)
+):
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
+
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User already exists")
+
+    hashed_password = hash_password(user_data.password)
+
+    new_user = User(
+        email=user_data.email,
+        hashed_password=hashed_password
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return {"message": "User created successfully"}
+
+
 @router.post("/refresh")
 def refresh_token_endpoint(
     request: RefreshRequest,

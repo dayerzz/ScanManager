@@ -3,6 +3,8 @@ import { login, getMe, getScans, uploadScan, deleteScan, downloadScan } from "./
 import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import ScansPage from "./pages/ScansPage";
+import RegisterPage from "./pages/RegisterPage";
+import MergePage from "./pages/MergePage";
 
 
 function App() {
@@ -108,7 +110,9 @@ function App() {
   <Routes>
     <Route path="/" element={<Navigate to="/login" />} />
     <Route path="/login" element={<LoginPage />} />
+    <Route path="/register" element={<RegisterPage />} />
     <Route path="/scans" element={<ScansPage />} />
+    <Route path="/merge" element={<MergePage />} />
   </Routes>
 );
 }

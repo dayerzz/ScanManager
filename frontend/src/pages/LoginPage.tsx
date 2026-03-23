@@ -49,10 +49,21 @@ export default function LoginPage() {
 
           <button
             onClick={handleLogin}
-            className="w-full bg-indigo-500 text-white p-3 rounded hover:bg-indigo-600"
+            className="w-full bg-indigo-500 text-white p-3 rounded hover:bg-indigo-600 transition"
           >
             Login
           </button>
+
+          {/* ССЫЛКА НА РЕГИСТРАЦИЮ */}
+          <p className="mt-4 text-sm">
+            Нет аккаунта?{" "}
+            <span
+              className="text-blue-500 cursor-pointer"
+              onClick={() => navigate("/register")}
+            >
+              Зарегистрироваться
+            </span>
+          </p>
 
         </div>
       </div>

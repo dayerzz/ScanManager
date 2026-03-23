@@ -1,5 +1,6 @@
 import os
 import uuid
+from uuid import UUID
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -185,3 +186,27 @@ def delete_scan(
             f"DELETE ERROR | user={current_user.id} | scan={scan_id} | error={str(e)}"
         )
         raise HTTPException(status_code=500, detail="Failed to delete scan")
+    
+
+@router.patch("/{scan_id}")
+def update_scan(
+    scan_id: UUID,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    scan = db.query(Scan).filter(
+        Scan.id == scan_id,
+        Scan.user_id == current_user.id
+    ).first()
+
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    if "original_filename" in data:
+        scan.original_filename = data["original_filename"]
+
+    db.commit()
+    db.refresh(scan)
+
+    return scan

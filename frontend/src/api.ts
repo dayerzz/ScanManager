@@ -20,6 +20,23 @@ export const login = async (email: string, password: string) => {
   return response.json();
 };
 
+export const register = async (email: string, password: string) => {
+  const response = await fetch("http://127.0.0.1:8000/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Register failed");
+  }
+
+  return response.json();
+};
+
+
 export const getMe = async () => {
   const token = localStorage.getItem("access_token");
 
@@ -72,6 +89,26 @@ export const uploadScan = async (file: File) => {
   }
 
   return response.json();
+};
+
+
+export const renameScan = async (id: string, newName: string) => {
+  const token = localStorage.getItem("access_token");
+
+  const res = await fetch(`http://127.0.0.1:8000/scans/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      original_filename: newName,
+    }),
+  });
+
+  if (!res.ok) throw new Error("Rename failed");
+
+  return res.json();
 };
 
 
