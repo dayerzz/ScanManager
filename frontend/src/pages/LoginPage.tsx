@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { login } from "../api";
 import { useNavigate } from "react-router-dom";
+import { login } from "../api";
 
-export default function LoginPage() {
+function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
@@ -15,8 +15,8 @@ export default function LoginPage() {
       localStorage.setItem("refresh_token", data.refresh_token);
 
       navigate("/scans");
-    } catch (err) {
-      console.error("LOGIN ERROR", err);
+    } catch (e) {
+      console.error("LOGIN ERROR", e);
     }
   };
 
@@ -24,42 +24,42 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
 
       {/* LEFT */}
-      <div className="w-1/2 flex items-center justify-center bg-white">
+      <div className="w-1/2 flex flex-col justify-center items-center bg-gray-100">
+
         <div className="w-80">
 
-          <h2 className="text-2xl font-bold mb-6">
-            С возвращением!
-          </h2>
+          <h1 className="text-3xl font-bold text-gray-800 mb-6">
+            Здравствуйте
+          </h1>
 
           <input
             type="email"
             placeholder="Email"
-            className="w-full border p-3 mb-4 rounded"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="w-full mb-3 p-3 rounded bg-gray-800 text-white"
           />
 
           <input
             type="password"
-            placeholder="Password"
-            className="w-full border p-3 mb-4 rounded"
+            placeholder="Пароль"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className="w-full mb-4 p-3 rounded bg-gray-800 text-white"
           />
 
           <button
             onClick={handleLogin}
-            className="w-full bg-indigo-500 text-white p-3 rounded hover:bg-indigo-600 transition"
+            className="w-full bg-indigo-500 text-white py-3 rounded hover:bg-indigo-600 transition"
           >
             Войти
           </button>
 
-          {/* ССЫЛКА НА РЕГИСТРАЦИЮ */}
-          <p className="mt-4 text-sm">
+          <p className="mt-4 text-sm text-gray-600">
             Нет аккаунта?{" "}
             <span
-              className="text-blue-500 cursor-pointer"
               onClick={() => navigate("/register")}
+              className="text-blue-500 cursor-pointer"
             >
               Зарегистрироваться
             </span>
@@ -69,17 +69,22 @@ export default function LoginPage() {
       </div>
 
       {/* RIGHT */}
-      <div className="w-1/2 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white">
-        <div className="text-center max-w-sm">
-          <h2 className="text-3xl font-bold mb-4">
-            Seamless work experience
+      <div className="w-1/2 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600">
+
+        <div className="text-center text-white px-10">
+          <h2 className="text-3xl font-bold">
+            Удобная работа со сканами
           </h2>
-          <p>
-            Everything you need in one place
+
+          <p className="mt-3 opacity-80">
+            Загружайте, ищите и управляйте документами
           </p>
         </div>
+
       </div>
 
     </div>
   );
 }
+
+export default LoginPage;

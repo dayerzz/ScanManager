@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 
 from app.core.database import get_db
 from app.core.logger import logger
@@ -99,20 +100,44 @@ def upload_scan(
 @router.get("/", response_model=List[ScanResponse])
 def get_user_scans(
     search: str = "",
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    min_size: int | None = None,
+    max_size: int | None = None,
+    sort: str = "desc",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Scan).filter(Scan.user_id == current_user.id)
 
+    # поиск
     if search:
         query = query.filter(
             Scan.original_filename.ilike(f"%{search}%") |
             Scan.ocr_text.ilike(f"%{search}%")
         )
 
-    scans = query.order_by(Scan.created_at.desc()).all()
+    # фильтр по дате
+    if date_from:
+        query = query.filter(Scan.created_at >= date_from)
 
-    return scans
+    if date_to:
+        query = query.filter(Scan.created_at <= date_to)
+
+    # фильтр по размеру
+    if min_size:
+        query = query.filter(Scan.file_size >= min_size)
+
+    if max_size:
+        query = query.filter(Scan.file_size <= max_size)
+
+    # сортировка
+    if sort == "asc":
+        query = query.order_by(Scan.created_at.asc())
+    else:
+        query = query.order_by(Scan.created_at.desc())
+
+    return query.all()
 
 
 @router.get("/{scan_id}/download")

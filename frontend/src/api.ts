@@ -21,7 +21,7 @@ export const login = async (email: string, password: string) => {
 };
 
 export const register = async (email: string, password: string) => {
-  const response = await fetch("${API_URL}/auth/register", {
+  const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -53,11 +53,20 @@ export const getMe = async () => {
   return response.json();
 };
 
-export const getScans = async (search: string = "") => {
+export const getScans = async (params: any = {}) => {
   const token = localStorage.getItem("access_token");
 
+  // убираем пустые значения
+  const cleanedParams = Object.fromEntries(
+    Object.entries(params).filter(
+      ([_, v]) => v !== "" && v !== null && v !== undefined
+    )
+  );
+
+  const query = new URLSearchParams(cleanedParams).toString();
+
   const res = await fetch(
-    `${API_URL}/scans?search=${search}`,
+    `${API_URL}/scans?${query}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -77,7 +86,7 @@ export const uploadScan = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch('${API_URL}/scans/upload', {
+  const response = await fetch(`${API_URL}/scans/upload`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
