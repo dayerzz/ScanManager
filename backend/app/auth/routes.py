@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
-from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
+from app.schemas.user import UserCreate, UserResponse, Token
 from app.schemas.auth import RefreshRequest
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token
@@ -17,12 +17,19 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register", response_model=UserResponse)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    existing_user = db.query(User).filter(
+        or_(
+            User.email == user_data.email,
+            User.username == user_data.username
+        )
+    ).first()
+
     if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="User already exists")
 
     new_user = User(
         email=user_data.email,
+        username=user_data.username,
         hashed_password=hash_password(user_data.password)
     )
 
@@ -34,16 +41,21 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
-):
-    user = db.query(User).filter(User.email == form_data.username).first()
+def login(data: dict, db: Session = Depends(get_db)):
+    identifier = data.get("email")  # сюда приходит email или username
+    password = data.get("password")
+
+    user = db.query(User).filter(
+        or_(
+            User.email == identifier,
+            User.username == identifier
+        )
+    ).first()
 
     if not user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    if not verify_password(form_data.password, user.hashed_password):
+    if not verify_password(password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
     access_token = create_access_token({"sub": str(user.id)})
@@ -54,31 +66,6 @@ def login(
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
-
-
-
-@router.post("/register")
-def register_user(
-    user_data: UserCreate,
-    db: Session = Depends(get_db)
-):
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
-
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User already exists")
-
-    hashed_password = hash_password(user_data.password)
-
-    new_user = User(
-        email=user_data.email,
-        hashed_password=hashed_password
-    )
-
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-    return {"message": "User created successfully"}
 
 
 @router.post("/refresh")

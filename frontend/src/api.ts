@@ -1,84 +1,57 @@
-const API_URL = "http://127.0.0.1:8000";
+import axios from "axios";
 
-export const login = async (email: string, password: string) => {
-  const formData = new URLSearchParams();
-  formData.append("username", email);
-  formData.append("password", password);
+const API_URL = "http://localhost:8000";
 
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: formData,
+// AUTH
+
+export const register = async (
+  email: string,
+  username: string,
+  password: string
+) => {
+  const res = await axios.post(`${API_URL}/auth/register`, {
+    email,
+    username,
+    password,
   });
 
-  if (!response.ok) {
-    throw new Error("Login failed");
-  }
-
-  return response.json();
+  return res.data;
 };
 
-export const register = async (email: string, password: string) => {
-  const response = await fetch(`${API_URL}/auth/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password }),
+export const login = async (identifier: string, password: string) => {
+  const res = await axios.post(`${API_URL}/auth/login`, {
+    email: identifier, // backend принимает как email или username
+    password,
   });
 
-  if (!response.ok) {
-    throw new Error("Register failed");
-  }
-
-  return response.json();
+  return res.data;
 };
-
 
 export const getMe = async () => {
   const token = localStorage.getItem("access_token");
 
-  const response = await fetch(`${API_URL}/users/me`, {
+  const res = await axios.get(`${API_URL}/users/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch user");
-  }
-
-  return response.json();
+  return res.data;
 };
 
-export const getScans = async (params: any = {}) => {
+// SCANS
+
+export const getScans = async () => {
   const token = localStorage.getItem("access_token");
 
-  // убираем пустые значения
-  const cleanedParams = Object.fromEntries(
-    Object.entries(params).filter(
-      ([_, v]) => v !== "" && v !== null && v !== undefined
-    )
-  );
+  const res = await axios.get(`${API_URL}/scans`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-  const query = new URLSearchParams(cleanedParams).toString();
-
-  const res = await fetch(
-    `${API_URL}/scans?${query}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  if (!res.ok) throw new Error("Failed to fetch scans");
-
-  return res.json();
+  return res.data;
 };
-
 
 export const uploadScan = async (file: File) => {
   const token = localStorage.getItem("access_token");
@@ -86,68 +59,47 @@ export const uploadScan = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_URL}/scans/upload`, {
-    method: "POST",
+  const res = await axios.post(`${API_URL}/scans/upload`, formData, {
     headers: {
       Authorization: `Bearer ${token}`,
+      "Content-Type": "multipart/form-data",
     },
-    body: formData,
   });
 
-  if (!response.ok) {
-    throw new Error("Upload failed");
-  }
-
-  return response.json();
+  return res.data;
 };
-
-
-export const renameScan = async (id: string, newName: string) => {
-  const token = localStorage.getItem("access_token");
-
-  const res = await fetch(`${API_URL}/scans/${id}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      original_filename: newName,
-    }),
-  });
-
-  if (!res.ok) throw new Error("Rename failed");
-
-  return res.json();
-};
-
 
 export const deleteScan = async (scanId: string) => {
   const token = localStorage.getItem("access_token");
 
-  const response = await fetch(
-    `${API_URL}/scans/${scanId}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const res = await axios.delete(`${API_URL}/scans/${scanId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-  if (!response.ok) {
-    throw new Error("Delete failed");
-  }
-
-  return response.json();
+  return res.data;
 };
-
 
 export const downloadScan = async (scanId: string) => {
   const token = localStorage.getItem("access_token");
 
-  const response = await fetch(
-    `${API_URL}/scans/${scanId}/download`,
+  const res = await axios.get(`${API_URL}/scans/${scanId}/download`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    responseType: "blob",
+  });
+
+  return res.data;
+};
+
+export const updateScanName = async (scanId: string, newName: string) => {
+  const token = localStorage.getItem("access_token");
+
+  const res = await axios.patch(
+    `${API_URL}/scans/${scanId}`,
+    { new_name: newName },
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -155,9 +107,5 @@ export const downloadScan = async (scanId: string) => {
     }
   );
 
-  if (!response.ok) {
-    throw new Error("Download failed");
-  }
-
-  return response.blob();
+  return res.data;
 };

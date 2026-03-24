@@ -34,7 +34,7 @@ function LoginPage() {
 
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Email/Логин"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full mb-3 p-3 rounded bg-gray-800 text-white"

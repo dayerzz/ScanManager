@@ -6,22 +6,25 @@ import {
   uploadScan,
   deleteScan,
   downloadScan,
-  renameScan
+  updateScanName,
 } from "../api";
+
+import pencilIcon from "../assets/pencil.svg";
+import uploadIcon from "../assets/upload.svg";
+import downloadIcon from "../assets/download.svg";
 
 function ScansPage() {
   const [user, setUser] = useState<any>(null);
   const [scans, setScans] = useState<any[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState({
-    search: "",
-    date_from: "",
-    date_to: "",
-    sort: "desc",
-  });
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [sort, setSort] = useState("desc");
 
   const navigate = useNavigate();
 
@@ -40,13 +43,9 @@ function ScansPage() {
 
         const scansData = await getScans();
         setScans(scansData);
-
-      } catch (e) {
-        console.error("ERROR", e);
-
+      } catch {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
-
         navigate("/login");
       }
     };
@@ -54,43 +53,18 @@ function ScansPage() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const fetchFiltered = async () => {
-      try {
-        const data = await getScans(filters);
-        setScans(data);
-      } catch (e) {
-        console.error("FILTER ERROR", e);
-      }
-    };
-
-    fetchFiltered();
-  }, [filters]);
-
-  const highlightText = (text: string, query: string) => {
-    if (!query) return text;
-
-    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(`(${escaped})`, "gi");
-
-    return text.replace(
-      regex,
-      `<mark class="bg-yellow-300 text-black">$1</mark>`
-    );
-  };
-
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     await uploadScan(file);
-    const updated = await getScans(filters);
+    const updated = await getScans();
     setScans(updated);
   };
 
   const handleDelete = async (id: string) => {
     await deleteScan(id);
-    const updated = await getScans(filters);
+    const updated = await getScans();
     setScans(updated);
   };
 
@@ -104,54 +78,79 @@ function ScansPage() {
     a.click();
   };
 
-  const handleRename = async (id: string) => {
-    try {
-      await renameScan(id, newName);
-
-      setEditingId(null);
-      setNewName("");
-
-      const updated = await getScans(filters);
-      setScans(updated);
-
-    } catch (error) {
-      console.error("RENAME ERROR", error);
-    }
-  };
-
-  const toggleExpand = (id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id));
-  };
-
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
-
     navigate("/login");
   };
 
+  const startEditing = (scan: any) => {
+    setEditingId(scan.id);
+    setNewName(scan.original_filename);
+  };
+
+  const saveName = async (scanId: string) => {
+    const trimmed = newName.trim();
+
+    if (!trimmed) {
+      setEditingId(null);
+      return;
+    }
+
+    try {
+      await updateScanName(scanId, trimmed);
+
+      const updated = await getScans();
+      setScans(updated);
+    } catch (e) {
+      console.error("Rename error", e);
+    }
+
+    setEditingId(null);
+  };
+
+  const filteredScans = scans
+    .filter((scan) => {
+      const matchesSearch =
+        scan.original_filename.toLowerCase().includes(search.toLowerCase()) ||
+        (scan.ocr_text &&
+          scan.ocr_text.toLowerCase().includes(search.toLowerCase()));
+
+      const scanDate = new Date(scan.created_at);
+
+      const matchesFrom = dateFrom ? scanDate >= new Date(dateFrom) : true;
+      const matchesTo = dateTo ? scanDate <= new Date(dateTo) : true;
+
+      return matchesSearch && matchesFrom && matchesTo;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+
+      return sort === "desc" ? dateB - dateA : dateA - dateB;
+    });
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-3xl mx-auto">
 
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800">
-            Здравствуйте, {user?.email}
+            Здравствуйте, {user?.username}
           </h1>
 
           <div className="flex gap-2">
             <button
               onClick={() => navigate("/merge")}
-              className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600"
+              className="bg-indigo-500 text-white px-4 py-2 rounded"
             >
               Склейка
             </button>
 
             <button
               onClick={handleLogout}
-              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              className="bg-red-500 text-white px-4 py-2 rounded"
             >
               Выйти
             </button>
@@ -159,173 +158,122 @@ function ScansPage() {
         </div>
 
         {/* UPLOAD */}
-        <div className="bg-white p-4 rounded shadow mb-6">
-          <label className="flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed border-gray-300 rounded p-6 hover:bg-gray-50 transition">
-
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6 text-gray-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 12V3m0 0l-3 3m3-3l3 3"
-              />
-            </svg>
-
-            <span className="text-gray-600">Загрузить файл</span>
-
-            <input
-              type="file"
-              onChange={handleUpload}
-              className="hidden"
-            />
+        <div className="bg-white shadow-md rounded-lg p-6 mb-6 border-2 border-dashed">
+          <label className="cursor-pointer flex flex-col items-center gap-3 text-gray-600">
+            <img src={uploadIcon} className="w-8 h-8 opacity-70" />
+            <span>Загрузить файл</span>
+            <input type="file" onChange={handleUpload} className="hidden" />
           </label>
         </div>
 
         {/* FILTERS */}
-        <div className="bg-white p-4 rounded shadow mb-4 space-y-4">
-
+        <div className="bg-white shadow-md rounded-lg p-4 mb-6">
           <input
             type="text"
             placeholder="Поиск по тексту"
-            value={filters.search}
-            onChange={(e) =>
-              setFilters({ ...filters, search: e.target.value })
-            }
-            className="w-full p-2 border rounded"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full mb-3 p-2 border rounded"
           />
 
-          <div className="flex justify-between items-center flex-wrap gap-3">
-
+          <div className="flex justify-between items-center">
             <div className="flex gap-2">
               <input
                 type="date"
-                onChange={(e) =>
-                  setFilters({ ...filters, date_from: e.target.value })
-                }
-                className="border p-2 rounded"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="p-2 border rounded"
               />
 
               <input
                 type="date"
-                onChange={(e) =>
-                  setFilters({ ...filters, date_to: e.target.value })
-                }
-                className="border p-2 rounded"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="p-2 border rounded"
               />
             </div>
 
             <select
-              value={filters.sort}
-              onChange={(e) =>
-                setFilters({ ...filters, sort: e.target.value })
-              }
-              className="border p-2 rounded"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="p-2 border rounded"
             >
               <option value="desc">Сначала новые</option>
               <option value="asc">Сначала старые</option>
             </select>
-
           </div>
-
         </div>
+
+        {/* TITLE */}
+        <h2 className="text-center text-sm text-gray-500 mb-4">
+          МОИ СКАНЫ
+        </h2>
 
         {/* LIST */}
         <div className="space-y-4">
-          {scans.map((scan) => (
-            <div key={scan.id} className="bg-white p-4 rounded shadow">
+          {filteredScans.map((scan) => (
+            <div key={scan.id} className="bg-white shadow-md rounded-lg p-4">
 
-              <div className="flex justify-between items-start">
+              <div className="flex justify-between items-center">
 
-                {/* NAME */}
                 <div className="flex items-center gap-2">
                   {editingId === scan.id ? (
                     <input
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
+                      onBlur={() => saveName(scan.id)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
-                          handleRename(scan.id);
+                          saveName(scan.id);
                         }
                       }}
                       className="border px-2 py-1 rounded"
+                      autoFocus
                     />
                   ) : (
                     <>
                       <span>{scan.original_filename}</span>
 
-                      <button
-                        onClick={() => {
-                          setEditingId(scan.id);
-                          setNewName(scan.original_filename);
-                        }}
-                      >
-                        ✏️
-                      </button>
+                      <img
+                        src={pencilIcon}
+                        onClick={() => startEditing(scan)}
+                        className="w-4 h-4 cursor-pointer"
+                      />
                     </>
                   )}
                 </div>
 
-                {/* ACTIONS */}
-                <div className="flex flex-col items-end gap-2">
-
-                  <div className="flex gap-3 items-center">
-
-                    <button
-                      onClick={() => handleDownload(scan)}
-                      className="text-gray-600 hover:text-black"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-5 h-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 16v-8m0 8l-3-3m3 3l3-3M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1"
-                        />
-                      </svg>
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(scan.id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                    >
-                      Удалить
-                    </button>
-
-                  </div>
+                <div className="flex items-center gap-4">
+                  <img
+                    src={downloadIcon}
+                    onClick={() => handleDownload(scan)}
+                    className="w-5 h-5 cursor-pointer"
+                  />
 
                   <button
-                    onClick={() => toggleExpand(scan.id)}
-                    className="text-gray-500 hover:text-black text-lg"
+                    onClick={() => handleDelete(scan.id)}
+                    className="bg-red-500 text-white px-3 py-1 rounded"
                   >
-                    {expandedId === scan.id ? "▲" : "▼"}
+                    Удалить
                   </button>
-
                 </div>
-
               </div>
 
-              {/* OCR */}
-              {scan.ocr_text && expandedId === scan.id && (
-                <pre
-                  className="mt-2 bg-black text-green-400 p-2 rounded"
-                  dangerouslySetInnerHTML={{
-                    __html: highlightText(scan.ocr_text, filters.search),
-                  }}
-                />
-              )}
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={() =>
+                    setExpanded(expanded === scan.id ? null : scan.id)
+                  }
+                >
+                  {expanded === scan.id ? "▲" : "▼"}
+                </button>
+              </div>
 
+              {expanded === scan.id && scan.ocr_text && (
+                <pre className="mt-3 bg-black text-green-400 p-3 rounded text-sm max-h-48 overflow-auto whitespace-pre-wrap">
+                  {scan.ocr_text}
+                </pre>
+              )}
             </div>
           ))}
         </div>

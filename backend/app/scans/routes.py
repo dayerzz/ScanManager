@@ -228,10 +228,17 @@ def update_scan(
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
 
-    if "original_filename" in data:
-        scan.original_filename = data["original_filename"]
+    new_name = data.get("new_name")
+
+    if not new_name:
+        raise HTTPException(status_code=400, detail="New name is required")
+
+    scan.original_filename = new_name
 
     db.commit()
     db.refresh(scan)
 
-    return scan
+    return {
+        "id": str(scan.id),
+        "original_filename": scan.original_filename
+    }

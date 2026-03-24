@@ -4,17 +4,19 @@ from uuid import UUID
 
 class UserCreate(BaseModel):
     email: EmailStr
+    username: str
     password: str
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    identifier: str  # email или username
     password: str
 
 
 class UserResponse(BaseModel):
     id: UUID
     email: EmailStr
+    username: str
 
     class Config:
         from_attributes = True
