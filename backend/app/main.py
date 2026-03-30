@@ -9,6 +9,7 @@ from app.models import refresh_token
 from app.scans.routes import router as scans_router
 from app.auth.routes import router as auth_router
 from app.users.routes import router as users_router
+from app.chat.routes import router as chat_router
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -27,6 +28,7 @@ Base.metadata.create_all(bind=engine)
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(scans_router)
+app.include_router(chat_router)
 
 
 @app.get("/")

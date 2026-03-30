@@ -8,6 +8,7 @@ import {
   downloadScan,
   updateScanName,
 } from "../api";
+import ChatWidget from "../components/ChatWidget";
 
 import pencilIcon from "../assets/pencil.svg";
 import uploadIcon from "../assets/upload.svg";
@@ -27,6 +28,14 @@ function ScansPage() {
   const [sort, setSort] = useState("desc");
 
   const navigate = useNavigate();
+
+  const highlightText = (text: string, query: string) => {
+    if (!query) return text;
+
+    const regex = new RegExp(`(${query})`, "gi");
+
+    return text.replace(regex, `<mark class="bg-yellow-300">$1</mark>`);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -270,15 +279,21 @@ function ScansPage() {
               </div>
 
               {expanded === scan.id && scan.ocr_text && (
-                <pre className="mt-3 bg-black text-green-400 p-3 rounded text-sm max-h-48 overflow-auto whitespace-pre-wrap">
-                  {scan.ocr_text}
-                </pre>
+                <pre
+                  className="mt-3 bg-black text-green-400 p-3 rounded text-sm max-h-48 overflow-auto whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{
+                    __html: highlightText(scan.ocr_text, search),
+                  }}
+                />
               )}
             </div>
           ))}
         </div>
 
       </div>
+
+      {/* CHAT */}
+      <ChatWidget />
     </div>
   );
 }

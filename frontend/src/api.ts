@@ -109,3 +109,19 @@ export const updateScanName = async (scanId: string, newName: string) => {
 
   return res.data;
 };
+
+export const sendMessage = async (message: string) => {
+  const token = localStorage.getItem("access_token");
+
+  const res = await axios.post(
+    `${API_URL}/chat`,
+    { message },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return res.data;
+};
